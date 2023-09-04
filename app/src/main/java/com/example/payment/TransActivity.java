@@ -38,7 +38,7 @@ public class TransActivity extends AppCompatActivity {
         setContentView(R.layout.activity_trans);
         amt = findViewById(R.id.txtamt);
         Intent intent = getIntent();
-        String uid = intent.getStringExtra("uid");
+        String uid = intent.getStringExtra("uuid");
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         String amount = amt.getText().toString();

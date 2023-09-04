@@ -179,9 +179,7 @@ public class ScannerActivity extends AppCompatActivity {
                                 Log.d(TAG, "User's email: " + userEmail);
                                 Log.d(TAG, "User's phone number: " + userPhoneNumber);
                                  Intent i = new Intent(ScannerActivity.this,TransActivity.class);
-                                i.putExtra("number", userPhoneNumber);
-                                i.putExtra("email", userEmail);
-                                i.putExtra("uid",uid);
+                                i.putExtra("uuid",uid);
                                 startActivity(i);
 
                                 // Do whatever you want with the user's data here
