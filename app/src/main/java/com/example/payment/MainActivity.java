@@ -10,7 +10,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -19,11 +18,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -58,44 +52,6 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-               /* // Login user
-                FirebaseAuth.getInstance().signInWithEmailAndPassword(userEmail, userPassword)
-                        .addOnCompleteListener(MainActivity.this, new OnCompleteListener<AuthResult>() {
-                            @Override
-                            public void onComplete(@NonNull Task<AuthResult> task) {
-                                if (task.isSuccessful()) {
-                                    // User login successful
-                                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                                    if (user != null) {
-                                        // Now you can access the user's data from the Realtime Database
-                                        String userId = user.getUid();
-                                        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
-                                        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                                            @Override
-                                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                                // Example: Get user details
-                                                String userEmail = snapshot.child("email").getValue(String.class);
-                                                String userPhoneNumber = snapshot.child("phoneNumber").getValue(String.class);
-                                                Log.d(TAG, "User email: " + userEmail + ", Phone number: " + userPhoneNumber);
-                                                Intent in = new Intent(MainActivity.this,HomeActivity.class);
-                                                in.putExtra("number", userPhoneNumber);
-                                                startActivity(in);
-                                            }
-
-                                            @Override
-                                            public void onCancelled(@NonNull DatabaseError error) {
-                                                Log.e(TAG, "Error getting user data", error.toException());
-                                            }
-                                        });
-                                    }
-                                } else {
-                                    // Handle login failure
-                                    Toast.makeText(MainActivity.this, "Login failed.", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        });
-
-                */
                 // Login user
                 mAuth.signInWithEmailAndPassword(userEmail, userPassword)
                         .addOnCompleteListener(MainActivity.this, new OnCompleteListener<AuthResult>() {
@@ -115,11 +71,16 @@ public class MainActivity extends AppCompatActivity {
                                                             DocumentSnapshot document = task.getResult();
                                                             if (document.exists()) {
                                                                 String userPhoneNumber = document.getString("phoneNumber");
+                                                                String uid = user.getUid();
                                                                 Log.d(TAG, "User's phone number: " + userPhoneNumber);
+                                                                Log.d(TAG, "User's Id: " + uid);
+                                                                //globale variable
+                                                                Suid suid = com.example.payment.Suid.getInstance();
+                                                                suid.setData(uid);
                                                                 // Start the HomeActivity with the user's phone number
                                                                 Intent in = new Intent(MainActivity.this, HomeActivity.class);
-                                                                in.putExtra("number", userPhoneNumber);
-                                                                in.putExtra("uid",user.getUid());
+                                                               // in.putExtra("number", userPhoneNumber);
+                                                                in.putExtra("uid", uid);
                                                                 startActivity(in);
                                                             }
                                                         }

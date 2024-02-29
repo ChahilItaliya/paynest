@@ -1,11 +1,12 @@
 package com.example.payment;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,13 +19,13 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -162,43 +163,14 @@ public class otp_varify extends AppCompatActivity {
         }
 
     };
-   /* private void registerUser()
-    {
-        Intent intent = getIntent();
-        String phone = intent.getStringExtra("number");
-        String email = intent.getStringExtra("email");
-        String password = intent.getStringExtra("password");
-        sendVerificationCode(phone);
-        // Register new user
-        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(otp_varify.this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            // User registered successfully
-                            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                            if (user != null) {
-                                // Save additional user details to the Realtime Database
-                                String userId = user.getUid();
-                                DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
-                                userRef.child("email").setValue(email);
-                                userRef.child("phoneNumber").setValue(phone);
-                                Intent in = new Intent(otp_varify.this,MainActivity.class);
-                                startActivity(in);
-                                finish();
-                            }
-                        } else {
-                            // Handle registration failure
-                            Toast.makeText(otp_varify.this, "Registration failed.", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-    }*/
+
    private void registerUser() {
        Intent intent = getIntent();
+       String name = intent.getStringExtra("name");
        String phone = intent.getStringExtra("number");
        String email = intent.getStringExtra("email");
        String password = intent.getStringExtra("password");
+       String imageUriStr = getIntent().getStringExtra("img");
 
        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
                .addOnCompleteListener(otp_varify.this, new OnCompleteListener<AuthResult>() {
@@ -208,48 +180,76 @@ public class otp_varify extends AppCompatActivity {
                            // User registered successfully
                            FirebaseAuth auth = FirebaseAuth.getInstance();
                            FirebaseFirestore db = FirebaseFirestore.getInstance();
-                           // Get the current user's UID
+                           StorageReference storageRef = FirebaseStorage.getInstance().getReference();
                            String uid = auth.getCurrentUser().getUid();
-                           //creat new phone number class
-                           Map<String, Object> numMap = new HashMap<>();
-                           numMap.put("uid", uid);
-                           db.collection("phoneNumbers")
-                                   .document(phone)
-                                   .set(numMap);
 
-                           // Create a new user document with the UID as the document name
-                           Map<String, Object> userMap = new HashMap<>();
-                           userMap.put("email", email);
-                           userMap.put("phoneNumber", phone);
+                           // Upload the user's image to Firebase Storage
+                           Uri imageUri = Uri.parse(imageUriStr);
+                           String imageName = "profile_images/" + uid + ".jpg"; // Set a unique image name
+                           StorageReference imageRef = storageRef.child(imageName);
 
-                           db.collection("users")
-                                   .document(uid)
-                                   .set(userMap)
-                                   .addOnSuccessListener(new OnSuccessListener<Void>() {
+                           imageRef.putFile(imageUri)
+                                   .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                                        @Override
-                                       public void onSuccess(Void aVoid) {
-                                           // User data successfully stored in Firestore
-                                           Intent in = new Intent(otp_varify.this, MainActivity.class);
-                                           startActivity(in);
-                                           finish();
+                                       public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                                           // Get the download URL for the uploaded image
+                                           imageRef.getDownloadUrl()
+                                                   .addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                                       @Override
+                                                       public void onSuccess(Uri downloadUri) {
+                                                           // Image uploaded successfully, get the download URL
+                                                           String imageUrl = downloadUri.toString();
+                                                           //creat new phone number class
+                                                           Map<String, Object> numMap = new HashMap<>();
+                                                           numMap.put("uid", uid);
+                                                           db.collection("phoneNumbers")
+                                                                   .document(phone)
+                                                                   .set(numMap);
+
+                                                           // Create a new user document with the UID as the document name
+                                                           Map<String, Object> userMap = new HashMap<>();
+                                                           userMap.put("name", name);
+                                                           userMap.put("email", email);
+                                                           userMap.put("phoneNumber", phone);
+                                                           userMap.put("balance", 0);
+                                                           userMap.put("Profile_img", imageUrl); // Add the image URL
+
+                                                           db.collection("users")
+                                                                   .document(uid)
+                                                                   .set(userMap)
+                                                                   .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                                       @Override
+                                                                       public void onSuccess(Void aVoid) {
+                                                                           // User data successfully stored in Firestore
+                                                                           Intent in = new Intent(otp_varify.this, MainActivity.class);
+                                                                           startActivity(in);
+                                                                           finish();
+                                                                       }
+                                                                   })
+                                                                   .addOnFailureListener(new OnFailureListener() {
+                                                                       @Override
+                                                                       public void onFailure(@NonNull Exception e) {
+                                                                           // Handle Firestore data storage failure
+                                                                           Toast.makeText(otp_varify.this, "Failed to store user data.", Toast.LENGTH_SHORT).show();
+                                                                       }
+                                                                   });
+                                                       }
+                                                   });
                                        }
                                    })
                                    .addOnFailureListener(new OnFailureListener() {
                                        @Override
                                        public void onFailure(@NonNull Exception e) {
-                                           // Handle Firestore data storage failure
-                                           Toast.makeText(otp_varify.this, "Failed to store user data.", Toast.LENGTH_SHORT).show();
+                                           // Handle image upload failure
+                                           Toast.makeText(otp_varify.this, "Image upload failed.", Toast.LENGTH_SHORT).show();
                                        }
                                    });
-                       }
-                       else {
+                       } else {
                            // Handle registration failure
                            Toast.makeText(otp_varify.this, "Registration failed.", Toast.LENGTH_SHORT).show();
                        }
                    }
-
                });
-
-       //
    }
+
 }

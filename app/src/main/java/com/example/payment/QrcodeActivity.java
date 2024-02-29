@@ -1,12 +1,11 @@
 package com.example.payment;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
@@ -20,19 +19,23 @@ import java.util.Map;
 public class QrcodeActivity extends AppCompatActivity {
 
     private ImageView qrCodeImageView;
-    TextView unumber;
+    TextView name;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_qrcode);
         qrCodeImageView = findViewById(R.id.qrCodeImageView);
-        Intent intent = getIntent();
-        String number = intent.getStringExtra("number");
-        Bitmap qrCodeBitmap = generateQRCode(number);
+        name  =  findViewById(R.id.name);
+       
+        Suid suid = com.example.payment.Suid.getInstance();
+        String uid = suid.getData();
+        name.setText(suid.getName());
+
+        Bitmap qrCodeBitmap = generateQRCode(uid);
         qrCodeImageView.setImageBitmap(qrCodeBitmap);
-        unumber  =  findViewById(R.id.number);
-        unumber.setText(number);
+
+       // unumber.setText(number);
     }
     private Bitmap generateQRCode(String content) {
         try {

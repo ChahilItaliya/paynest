@@ -2,25 +2,23 @@ package com.example.payment;
 
 import static android.content.ContentValues.TAG;
 
+import android.content.Intent;
+import android.media.Image;
+import android.os.Bundle;
+import android.util.Log;
+import android.util.Size;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
-import androidx.camera.core.ExperimentalGetImage;
-
-import android.content.Intent;
-import android.media.Image;
-import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
-import android.util.Size;
-import android.widget.Toast;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -41,6 +39,8 @@ public class ScannerActivity extends AppCompatActivity {
 
     private PreviewView previewView;
     private ExecutorService cameraExecutor;
+    private boolean isScanning = true;
+
 
     LottieAnimationView cam;
 
@@ -51,16 +51,8 @@ public class ScannerActivity extends AppCompatActivity {
 
         previewView = findViewById(R.id.previewView);
         cameraExecutor = Executors.newSingleThreadExecutor();
-      //  cam = findViewById(R.id.lottie);
         startCamera();
 
-     /*   new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                Intent i = new Intent(getApplicationContext(),ScannerActivity.class);
-                startActivity(i);
-            }
-        },5000); */
     }
 
     private void startCamera() {
@@ -94,6 +86,10 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void processImage(@ExperimentalGetImage ImageProxy image) {
+        if (!isScanning) {
+            // Stop processing if scanning is disabled
+            return;
+        }
         Image mediaImage = image.getImage();
         if (mediaImage != null) {
             InputImage inputImage = InputImage.fromMediaImage(mediaImage, image.getImageInfo().getRotationDegrees());
@@ -106,7 +102,8 @@ public class ScannerActivity extends AppCompatActivity {
                                 String qrCodeValue = barcode.getRawValue();
                                 runOnUiThread(() -> {
                                     //Toast.makeText(ScannerActivity.this, "QR Code: " + qrCodeValue, Toast.LENGTH_SHORT).show();
-                                    sreachNumber(qrCodeValue);
+                                    fetchUserDataFromUsersCollection(qrCodeValue);
+                                    isScanning = false;
 
                                 });
                             }
@@ -126,39 +123,6 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
 
-    private void sreachNumber (String number)
-    {
-        String phoneNumberToSearch = number;
-
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-        db.collection("phoneNumbers")
-                .document(phoneNumberToSearch)
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            DocumentSnapshot document = task.getResult();
-                            if (document.exists()) {
-                                String uid = document.getString("uid");
-
-                                // Now you have the UID associated with the phone number
-                                // You can proceed to fetch email and phone number from the "users" collection
-                                fetchUserDataFromUsersCollection(uid);
-                            } else {
-                                // Handle case when phone number doesn't exist
-                                //Log.d(TAG, "Phone number not found.");
-                                Toast.makeText(ScannerActivity.this, "User Not Found", Toast.LENGTH_SHORT).show();
-                            }
-                        } else {
-                            // Handle Firestore read failure
-                           // Log.e(TAG, "Error getting document", task.getException());
-                            Toast.makeText(ScannerActivity.this,"\"Error getting document\"task.getException()", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-    }
     private void fetchUserDataFromUsersCollection(String uid) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -168,32 +132,32 @@ public class ScannerActivity extends AppCompatActivity {
                 .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful() && task.getResult() != null) {
+                        if (task.isSuccessful()) {
                             DocumentSnapshot document = task.getResult();
-                            if (document.exists()) {
-                                // Store user data in variables
+                            if (document != null && document.exists()) {
                                 String userEmail = document.getString("email");
                                 String userPhoneNumber = document.getString("phoneNumber");
 
-                                // Now you have the user's email and phone number stored in variables
                                 Log.d(TAG, "User's email: " + userEmail);
                                 Log.d(TAG, "User's phone number: " + userPhoneNumber);
-                                 Intent i = new Intent(ScannerActivity.this,TransActivity.class);
-                                i.putExtra("uuid",uid);
-                                startActivity(i);
+                                Log.d(TAG, "id: " + uid);
+                                Intent in = new Intent(ScannerActivity.this,TransferActivity.class);
+                                in.putExtra("uid",uid);
+                                startActivity(in);
+                                
 
-                                // Do whatever you want with the user's data here
+                                // Add code here to handle the retrieved data
                             } else {
-                                // Handle case when user document doesn't exist
                                 Log.d(TAG, "User document not found.");
                             }
                         } else {
-                            // Handle Firestore read failure
+                            // Log the error if the task was not successful
                             Log.e(TAG, "Error getting document", task.getException());
                         }
                     }
                 });
     }
+
 
 
 }
